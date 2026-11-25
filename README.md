@@ -293,3 +293,7 @@ A clean, modern, responsive calculator built with **plain HTML, CSS and JavaScri
 - HTML5
 - CSS3 (Grid, gradients, backdrop-filter)
 - Vanilla JavaScript
+
+## 🌐 Deployment
+
+Hosted on [Vercel](https://vercel.com) — every push to `main` deploys automatically.
