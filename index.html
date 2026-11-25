@@ -2,13 +2,20 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Calculator" />
+  <meta name="format-detection" content="telephone=no" />
   <meta name="theme-color" content="#0a0a0b" />
   <title>Calculator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;500;600&display=swap" rel="stylesheet" />
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { -webkit-text-size-adjust: 100%; touch-action: manipulation; }
 
     :root {
       --gold-hi: #f7e7b0;
@@ -20,11 +27,13 @@
     body {
       font-family: "Inter", system-ui, -apple-system, sans-serif;
       min-height: 100vh;
+      min-height: 100dvh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 24px;
       color: #f2f2f2;
+      overscroll-behavior: none;
       background:
         radial-gradient(ellipse at 50% 0%, rgba(212, 176, 98, 0.10) 0%, transparent 55%),
         radial-gradient(ellipse at 50% 100%, rgba(255, 255, 255, 0.04) 0%, transparent 60%),
@@ -164,6 +173,8 @@
       transition: transform 0.07s ease, box-shadow 0.07s ease, filter 0.15s ease;
       -webkit-tap-highlight-color: transparent;
       user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
       isolation: isolate;
     }
 
@@ -194,7 +205,9 @@
       pointer-events: none;
     }
 
-    .key:hover { filter: brightness(1.08); }
+    @media (hover: hover) {
+      .key:hover { filter: brightness(1.08); }
+    }
 
     .key:active,
     .key.pressed {
@@ -256,11 +269,75 @@
 
     .key.zero { grid-column: span 2; text-align: left; padding-left: 30px; }
 
-    @media (max-width: 390px) {
-      .calculator { padding: 18px 16px 22px; border-radius: 28px; }
-      .keys { gap: 11px; }
-      .key { height: 60px; font-size: 20px; border-radius: 16px; }
-      .result { font-size: 46px; }
+    /* ---------- Phones: full-screen, thumb-friendly ---------- */
+    @media (max-width: 520px) {
+      body {
+        padding: 0;
+        align-items: stretch;
+        background: #0a0a0b;
+      }
+
+      .calculator {
+        max-width: none;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        border-radius: 0;
+        padding:
+          calc(env(safe-area-inset-top) + 14px)
+          calc(env(safe-area-inset-right) + 16px)
+          calc(env(safe-area-inset-bottom) + 20px)
+          calc(env(safe-area-inset-left) + 16px);
+        box-shadow: none;
+      }
+
+      .brand { padding: 4px 6px 12px; }
+
+      .display {
+        flex: 1;
+        min-height: 140px;
+        margin-bottom: 18px;
+        padding: 20px 18px 16px;
+      }
+
+      .expression { font-size: 18px; }
+      .result { font-size: 64px; }
+
+      .keys { gap: clamp(10px, 3vw, 14px); }
+
+      .key {
+        height: auto;
+        aspect-ratio: 1 / 0.92;
+        font-size: clamp(22px, 6.5vw, 28px);
+        border-radius: clamp(16px, 5vw, 22px);
+      }
+      .key.zero { aspect-ratio: auto; }
+      .key.fn { font-size: clamp(18px, 5.5vw, 22px); }
+      .key.op { font-size: clamp(26px, 7.5vw, 32px); }
+      .key.equals { font-size: clamp(28px, 8vw, 34px); }
+    }
+
+    /* ---------- Short screens / phones in landscape ---------- */
+    @media (max-height: 560px) and (min-width: 521px) {
+      body { padding: 10px; }
+      .calculator {
+        max-width: 560px;
+        padding:
+          12px
+          calc(env(safe-area-inset-right) + 18px)
+          16px
+          calc(env(safe-area-inset-left) + 18px);
+        border-radius: 24px;
+      }
+      .brand { display: none; }
+      .display { min-height: 76px; margin-bottom: 12px; padding: 10px 16px; border-radius: 14px; }
+      .expression { font-size: 13px; min-height: 16px; }
+      .result { font-size: 38px; }
+      .keys { gap: 8px; }
+      .key { height: 46px; font-size: 18px; border-radius: 12px; }
+      .key.op { font-size: 22px; }
+      .key.equals { font-size: 24px; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -324,10 +401,20 @@
       return dec !== undefined ? `${intFmt}.${dec}` : intFmt;
     }
 
+    // shrink the result until it fits the display, on any screen size
+    function fitResult() {
+      resultEl.style.fontSize = "";
+      let size = parseFloat(getComputedStyle(resultEl).fontSize);
+      while (resultEl.scrollWidth > resultEl.clientWidth && size > 22) {
+        size -= 2;
+        resultEl.style.fontSize = size + "px";
+      }
+    }
+
     function render() {
       const text = format(current);
       resultEl.textContent = text;
-      resultEl.style.fontSize = text.length > 12 ? "32px" : text.length > 9 ? "40px" : "";
+      fitResult();
       exprEl.textContent = operator ? `${format(previous)} ${symbols[operator]}` : exprEl.textContent;
       document.querySelectorAll(".op").forEach(b =>
         b.classList.toggle("active", b.dataset.op === operator && resetNext));
@@ -406,7 +493,30 @@
       setTimeout(() => btn.classList.remove("pressed"), 110);
     }
 
-    document.querySelector(".keys").addEventListener("click", e => {
+    // instant press feedback on touch screens
+    const keysEl = document.querySelector(".keys");
+    keysEl.addEventListener("pointerdown", e => {
+      const btn = e.target.closest("button");
+      if (btn) btn.classList.add("pressed");
+    });
+    ["pointerup", "pointercancel"].forEach(type =>
+      document.addEventListener(type, () =>
+        keysEl.querySelectorAll(".pressed").forEach(b => b.classList.remove("pressed"))));
+
+    // swipe left or right on the display to delete the last digit
+    const displayEl = document.querySelector(".display");
+    let swipeX = null;
+    displayEl.addEventListener("touchstart", e => { swipeX = e.touches[0].clientX; }, { passive: true });
+    displayEl.addEventListener("touchend", e => {
+      if (swipeX !== null && Math.abs(e.changedTouches[0].clientX - swipeX) > 40) {
+        backspace();
+        render();
+        if (navigator.vibrate) navigator.vibrate(8);
+      }
+      swipeX = null;
+    });
+
+    keysEl.addEventListener("click", e => {
       const btn = e.target.closest("button");
       if (!btn) return;
       if (navigator.vibrate) navigator.vibrate(8);
@@ -433,6 +543,8 @@
       else return;
       render();
     });
+
+    window.addEventListener("resize", fitResult);
 
     render();
   </script>
